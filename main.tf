@@ -18,6 +18,27 @@ resource "aws_s3_bucket" "my_vled_bucket" {
     bucket = var.bucket_name
 }
 
+resource "aws_security_group" "group_1" {
+    name = "security group 1"
+}
+
+resource "aws_security_group" "group_2" {
+    name = "security group 2"
+}
+
+resource "aws_security_group" "group_3" {
+    name = "security group 3"
+}
+
+module "cross_talk_groups" {
+    source = "./cross-talk-3-way"
+    security_group_1 = aws_security_group.group_1
+    security_group_2 = aws_security_group.group_2
+    security_group_3 = aws_security_group.group_3
+    protocol = "tcp"
+    port = 8500
+}
+
 variable "a" {
     type = list(string)
     // type = set(string) // contains only unique elements
@@ -95,6 +116,16 @@ locals {
 
 }
 
+module "work_queue" {
+    source = "./sqs-with-backoff"
+    queue_name = "work-queue"
+}
+
+# module "work_queue" {
+#     source = "github.com/kevholditch/sqs-with-backoff?ref=0.0.2"
+#     queue_name = "work-queue"
+# }
+
 # output "bucket_name" {
 #     value = aws_s3_bucket.my_vled_bucket.id
 # }
@@ -121,6 +152,14 @@ output "rendered_template" {
 
 output "backend_template" {
     value = local.backend
+}
+
+output "work_queue_name" {
+    value = module.work_queue.queue_name
+}
+  
+output "work_queue_dead_letter_name" {
+    value = module.work_queue.dead_letter_queue_name
 }
 
 # provider "aws" {
@@ -175,3 +214,12 @@ output "backend_template" {
 # }
 # EOF
 # }
+
+# managing VPC generated outside of the terraform
+resource "aws_vpc" "example" {  
+    cidr_block = "10.0.0.0/16"
+    
+    tags = {
+        Name = "example"
+    }
+}
