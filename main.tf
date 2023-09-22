@@ -215,11 +215,30 @@ output "work_queue_dead_letter_name" {
 # EOF
 # }
 
-# managing VPC generated outside of the terraform
+# managing VPC generated outside of the terraform. terraform import aws_vpc.example VPC_ID
 resource "aws_vpc" "example" {  
     cidr_block = "10.0.0.0/16"
-    
+
     tags = {
         Name = "example"
+    }
+}
+
+# uses state.tf defined S3 remote state backend. Count 
+resource "aws_sqs_queue" "new_queue" {
+    name = "new_queue"
+    count = 4
+}
+
+# locals are the variables of tf
+locals {
+    fruit = toset(["apple", "banana", "orange"])
+}
+
+resource "aws_sqs_queue" "queues" {
+    for_each = local.fruit
+    name = "queue_${each.key}"
+    lifecycle {
+      #prevent_destroy = true
     }
 }
